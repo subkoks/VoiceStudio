@@ -63,8 +63,9 @@ class SmallestSpeechModel: TestRule {
     /**
      * The same store and create() the Voices screen uses (PhoneStudio), fed real
      * speech from the installed model. The transcript is the scripted line that
-     * speech was made from, so the much larger ASR model is not needed; create()
-     * still decodes the clip, writes the reference and records consent time.
+     * speech was made from, and the preview reuses that synthetic reference, so
+     * no ASR or clone model is needed. create() still decodes the clip, writes
+     * the reference and records consent time.
      */
     private suspend fun seedVoice(context: android.content.Context, runtime: PhoneRuntime, tts: PhoneModel, asr: PhoneModel, clone: PhoneModel) {
         val voices=PhoneVoiceStore(File(context.noBackupFilesDir,"voices"))
@@ -74,6 +75,7 @@ class SmallestSpeechModel: TestRule {
             markSynthetic(runtime.engine.synthesize(tts,VOICE_LINE,language="en"),source)
             val scripted=object: LocalEngine by runtime.engine {
                 override suspend fun transcribe(model: PhoneModel, audio: LocalAudio, progress: (Float)->Unit): String = VOICE_LINE
+                override suspend fun clone(model: PhoneModel, text: String, reference: LocalAudio, referenceText: String, progress: (Float)->Unit): LocalAudio = reference
             }
             voices.create(VOICE_NAME,source,true,asr,clone,scripted)
         } finally {source.delete()}
